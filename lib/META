@@ -1,0 +1,7 @@
+version = "0.9.9"
+description = "Collection of module signatures for Mirage"
+archive(byte) = "mirage-types.cma"
+archive(byte, plugin) = "mirage-types.cma"
+archive(native) = "mirage-types.cmxa"
+archive(native, plugin) = "mirage-types.cmxs"
+exists_if = "mirage-types.cma"
