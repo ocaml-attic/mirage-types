@@ -87,3 +87,36 @@ module type CLOCK = sig
       date and a time. Assumes UTC (Coordinated Universal Time), also
       known as GMT. *)
 end
+
+(** Text console input/output operations. *)
+module type CONSOLE = sig
+
+  (** Abstract type of a console instance. *)
+  type t
+
+  (** Abstract type for a blocking IO operation *)
+  type 'a io
+
+  (** [create ()] creates an additional console. Not implemented yet. *)
+  val create : unit -> t
+
+  (** [write t buf off len] writes up to [len] chars of [String.sub buf
+      off len] to the console [t] and returns the number of bytes
+      written. Raises {!Invalid_argument} if [len > buf - off]. *)
+  val write : t -> string -> int -> int -> int
+
+  (** [write_all t buf off len] is a thread that writes [String.sub buf
+      off len] to the console [t] and returns [len] when done. Raises
+      {!Invalid_argument} if [len > buf - off]. *)
+  val write_all : t -> string -> int -> int -> int io
+
+  (** [log str] writes as much characters of [str] that can be written
+      in one write operation to the default console [t], then writes
+      "\r\n" to it. *)
+  val log : string -> unit
+
+  (** [log_s str] is a thread that writes [str ^ "\r\n"] in the default
+      console [t]. *)
+  val log_s : string -> unit io
+
+end
