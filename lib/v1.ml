@@ -120,3 +120,41 @@ module type CONSOLE = sig
   val log_s : string -> unit io
 
 end
+
+module type BLOCK_DEVICE = sig
+
+  (** Abstract type of a block device instance. *)
+  type t
+
+  (** Abstract type for a blocking IO operation *)
+  type 'a io
+
+  (** Abstract type for a memory buffer *)
+  type buffer
+
+  (** IO operation errors *)
+  type error =
+  | Unknown (** an undiagnosed error *)
+
+  (** Characteristics of the block device. Note some devices may be able
+      to make themselves bigger over time. *)
+  type info = {
+    read_write: bool;    (** True if we can write, false if read/only *)
+    sector_size: int;    (** Octets per sector *)
+    size_sectors: int64; (** Total sectors per device *)
+  }
+
+  (** Query the characteristics of a specific block device *)
+  val get_info: t -> info io
+
+  (** [read t sector_start buffers] returns a blocking IO operation which
+      attempts to fill [buffers] with data starting at [sector_start]. *)
+  val read: t -> int64 -> buffer list -> [ `Error of error | `Ok of unit ] io
+
+  (** [write t sector_start buffers] returns a blocking IO operation which
+      attempts to write the data contained within [buffers] to [t] starting
+      at [sector_start]. If an error occurs then the write may have partially
+      succeeded. *)
+  val write: t -> int64 -> buffer list -> [ `Error of error | `Ok of unit ] io
+
+end
