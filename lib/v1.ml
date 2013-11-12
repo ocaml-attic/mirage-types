@@ -129,8 +129,8 @@ module type BLOCK_DEVICE = sig
   (** Abstract type for a blocking IO operation *)
   type 'a io
 
-  (** Abstract type for a memory buffer *)
-  type buffer
+  (** Abstract type for a page-aligned memory buffer *)
+  type page_aligned_buffer
 
   (** IO operation errors *)
   type error =
@@ -149,12 +149,12 @@ module type BLOCK_DEVICE = sig
 
   (** [read t sector_start buffers] returns a blocking IO operation which
       attempts to fill [buffers] with data starting at [sector_start]. *)
-  val read: t -> int64 -> buffer list -> [ `Error of error | `Ok of unit ] io
+  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
   (** [write t sector_start buffers] returns a blocking IO operation which
       attempts to write the data contained within [buffers] to [t] starting
       at [sector_start]. If an error occurs then the write may have partially
       succeeded. *)
-  val write: t -> int64 -> buffer list -> [ `Error of error | `Ok of unit ] io
+  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
 end
