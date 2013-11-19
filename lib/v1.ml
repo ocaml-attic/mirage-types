@@ -134,7 +134,9 @@ module type BLOCK_DEVICE = sig
 
   (** IO operation errors *)
   type error =
-  | Unknown (** an undiagnosed error *)
+  | Unknown of string (** an undiagnosed error *)
+  | Unimplemented     (** operation not yet implemented in the code *)
+  | Is_read_only      (** you cannot write to a read/only instance *)
 
   (** Characteristics of the block device. Note some devices may be able
       to make themselves bigger over time. *)
@@ -143,6 +145,9 @@ module type BLOCK_DEVICE = sig
     sector_size: int;    (** Octets per sector *)
     size_sectors: int64; (** Total sectors per device *)
   }
+
+  (** Connect to a named block device *)
+  val connect: string -> [ `Error of error | `Ok of t ] io
 
   (** Query the characteristics of a specific block device *)
   val get_info: t -> info io
