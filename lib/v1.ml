@@ -152,14 +152,21 @@ module type BLOCK_DEVICE = sig
   (** Query the characteristics of a specific block device *)
   val get_info: t -> info io
 
-  (** [read t sector_start buffers] returns a blocking IO operation which
-      attempts to fill [buffers] with data starting at [sector_start]. *)
+  (** [read device sector_start buffers] returns a blocking IO operation which
+      attempts to fill [buffers] with data starting at [sector_start].
+      Each of [buffers] must be a whole number of sectors in length. The list
+      of buffers can be of any length. *)
   val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
-  (** [write t sector_start buffers] returns a blocking IO operation which
+  (** [write device sector_start buffers] returns a blocking IO operation which
       attempts to write the data contained within [buffers] to [t] starting
-      at [sector_start]. If an error occurs then the write may have partially
-      succeeded. *)
+      at [sector_start]. All writes are persisted before the IO operation
+      completes. If the IO operation fails with an error, then the write may
+      have partially succeeded.
+      Each of [buffers] must be a whole number of sectors in length. The list
+      of buffers can be of any length.
+      The data will not be copied, so the supplied buffers must not be re-used
+      until the IO operation completes. *)
   val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
 end
