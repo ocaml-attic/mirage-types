@@ -137,6 +137,7 @@ module type BLOCK_DEVICE = sig
   | Unknown of string (** an undiagnosed error *)
   | Unimplemented     (** operation not yet implemented in the code *)
   | Is_read_only      (** you cannot write to a read/only instance *)
+  | Disconnected      (** the device has been previously disconnected *)
 
   (** Characteristics of the block device. Note some devices may be able
       to make themselves bigger over time. *)
@@ -148,6 +149,12 @@ module type BLOCK_DEVICE = sig
 
   (** Connect to a named block device *)
   val connect: string -> [ `Error of error | `Ok of t ] io
+
+  (** Disconnect ourselves from the block device. This operation always
+      succeeds: it does not guarantee to clean up any resourcs allocated
+      on remote machines (e.g. iSCSI targets). Any attempt to perform I/O
+      on a disconnected device will result in a Disconnected error. *)
+  val disconnect: t -> unit io
 
   (** Query the characteristics of a specific block device *)
   val get_info: t -> info io
