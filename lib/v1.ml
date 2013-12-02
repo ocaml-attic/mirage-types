@@ -151,7 +151,7 @@ module type BLOCK_DEVICE = sig
   val connect: string -> [ `Error of error | `Ok of t ] io
 
   (** Disconnect ourselves from the block device. This operation always
-      succeeds: it does not guarantee to clean up any resourcs allocated
+      succeeds: it does not guarantee to clean up any resources allocated
       on remote machines (e.g. iSCSI targets). Any attempt to perform I/O
       on a disconnected device will result in a Disconnected error. *)
   val disconnect: t -> unit io
