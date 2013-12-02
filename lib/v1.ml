@@ -137,6 +137,7 @@ module type BLOCK_DEVICE = sig
   | Unknown of string (** an undiagnosed error *)
   | Unimplemented     (** operation not yet implemented in the code *)
   | Is_read_only      (** you cannot write to a read/only instance *)
+  | Disconnected      (** the device has been previously disconnected *)
 
   (** Characteristics of the block device. Note some devices may be able
       to make themselves bigger over time. *)
@@ -149,17 +150,41 @@ module type BLOCK_DEVICE = sig
   (** Connect to a named block device *)
   val connect: string -> [ `Error of error | `Ok of t ] io
 
+  (** Disconnect ourselves from the block device. This operation always
+      succeeds: it does not guarantee to clean up any resources allocated
+      on remote machines (e.g. iSCSI targets). Any attempt to perform I/O
+      on a disconnected device will result in a Disconnected error. *)
+  val disconnect: t -> unit io
+
   (** Query the characteristics of a specific block device *)
   val get_info: t -> info io
 
-  (** [read t sector_start buffers] returns a blocking IO operation which
-      attempts to fill [buffers] with data starting at [sector_start]. *)
+  (** [read device sector_start buffers] returns a blocking IO operation which
+      attempts to fill [buffers] with data starting at [sector_start].
+      Each of [buffers] must be a whole number of sectors in length. The list
+      of buffers can be of any length. *)
   val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
-  (** [write t sector_start buffers] returns a blocking IO operation which
+  (** [write device sector_start buffers] returns a blocking IO operation which
       attempts to write the data contained within [buffers] to [t] starting
-      at [sector_start]. If an error occurs then the write may have partially
-      succeeded. *)
+      at [sector_start]. When the IO operation completes then all writes have been
+      persisted.
+
+      Once submitted, it is not possible to cancel a request and there is no timeout.
+
+      The operation may fail with
+      * Unimplemented: the operation has not been implemented, no data has been written
+      * Is_read_only: the device is read-only, no data has been written
+      * Disconnected: the device has been disconnected at application request,
+        an unknown amount of data has been written
+      * Unknown: some other permanent, fatal error (e.g. disk is on fire), where
+        an unknown amount of data has been written
+ 
+      Each of [buffers] must be a whole number of sectors in length. The list
+      of buffers can be of any length.
+
+      The data will not be copied, so the supplied buffers must not be re-used
+      until the IO operation completes. *)
   val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
 end
