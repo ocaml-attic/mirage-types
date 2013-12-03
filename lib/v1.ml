@@ -88,18 +88,24 @@ module type CLOCK = sig
       known as GMT. *)
 end
 
+module type DEVICE = sig
+  type +'a io
+  type t
+  type error
+  type id
+  val connect: id -> [ `Error of error | `Ok of t ] io
+  val disconnect : t -> unit io
+end
+
 (** Text console input/output operations. *)
 module type CONSOLE = sig
+  type error = 
+    | Invalid_console of string
 
-  (** Abstract type of a console instance. *)
-  type t
-
-  (** Abstract type for a blocking IO operation *)
-  type 'a io
-
-  (** [create ()] creates an additional console. Not implemented yet. *)
-  val create : unit -> t
-
+  include DEVICE with
+    type error := error
+    and type id = string
+ 
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
       off len] to the console [t] and returns the number of bytes
       written. Raises {!Invalid_argument} if [len > buf - off]. *)
@@ -123,12 +129,6 @@ end
 
 module type BLOCK_DEVICE = sig
 
-  (** Abstract type of a block device instance. *)
-  type t
-
-  (** Abstract type for a blocking IO operation *)
-  type 'a io
-
   (** Abstract type for a page-aligned memory buffer *)
   type page_aligned_buffer
 
@@ -139,6 +139,10 @@ module type BLOCK_DEVICE = sig
   | Is_read_only      (** you cannot write to a read/only instance *)
   | Disconnected      (** the device has been previously disconnected *)
 
+  include DEVICE with
+    type error := error
+    and type id = string
+
   (** Characteristics of the block device. Note some devices may be able
       to make themselves bigger over time. *)
   type info = {
@@ -146,15 +150,6 @@ module type BLOCK_DEVICE = sig
     sector_size: int;    (** Octets per sector *)
     size_sectors: int64; (** Total sectors per device *)
   }
-
-  (** Connect to a named block device *)
-  val connect: string -> [ `Error of error | `Ok of t ] io
-
-  (** Disconnect ourselves from the block device. This operation always
-      succeeds: it does not guarantee to clean up any resources allocated
-      on remote machines (e.g. iSCSI targets). Any attempt to perform I/O
-      on a disconnected device will result in a Disconnected error. *)
-  val disconnect: t -> unit io
 
   (** Query the characteristics of a specific block device *)
   val get_info: t -> info io
