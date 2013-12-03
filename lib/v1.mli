@@ -115,7 +115,7 @@ end
 
 (** Text console input/output operations. *)
 module type CONSOLE = sig
-  type error = 
+  type error =
     | Invalid_console of string
 
   include DEVICE with
