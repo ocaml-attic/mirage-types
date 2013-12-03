@@ -89,12 +89,29 @@ module type CLOCK = sig
 end
 
 module type DEVICE = sig
+  (** Device operations.
+      Defines the functions to connect and disconnect any device *)
+ 
   type +'a io
+  (** A potentially blocking I/O operation *)
+
   type t
+  (** The type representing the internal state of the device *)
+
   type error
+  (** An error signalled by the device, normally returned after a
+      connection attempt *)
+
   type id
+  (** Type defining an identifier for this device that uniquely
+      identifies it among a device tree. *)
+
   val connect: id -> [ `Error of error | `Ok of t ] io
+  (** Connect to the device identified by [id] *)
+
   val disconnect : t -> unit io
+  (** Disconnect from the device.  While this might take some
+      time to complete, it can never result in an error. *)
 end
 
 (** Text console input/output operations. *)
@@ -196,7 +213,6 @@ module type BLOCKN = sig
     console: (module CONSOLE);
     blockN: (module BLOCK_DEVICE) list;
   }
-  val attach_all: t -> [ `Error of string | `Ok of unit] io
 end
 
 module type JOB = sig
