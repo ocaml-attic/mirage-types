@@ -2,13 +2,11 @@
 
 OCAMLBUILD=ocamlbuild
 
-ocamlbuild lib/mirage-types.cma lib/mirage-types.cmxa lib/mirage-types.cmxs
+ocamlbuild lib/v1.cmi 
 
 B=_build/lib
 if [ "$1" = "true" ]; then
   ocamlfind remove mirage-types || true
-  ocamlfind install mirage-types lib/META \
-    $B/v1.cmo $B/v1.cmi $B/mirage-types.cma \
-    $B/mirage-types.a $B/v1.cmx $B/mirage-types.cmxa $B/mirage-types.cmxs
+  ocamlfind install mirage-types lib/META $B/v1.cmi
 fi
 
