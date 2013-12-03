@@ -120,7 +120,7 @@ module type CONSOLE = sig
 
   include DEVICE with
     type error := error
-                  and type id = string
+    and type id = string
 
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
       off len] to the console [t] and returns the number of bytes
