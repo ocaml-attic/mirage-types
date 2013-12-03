@@ -183,3 +183,37 @@ module type BLOCK_DEVICE = sig
   val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
 end
+
+module type BLOCK = sig
+  type t = {
+    console: (module CONSOLE);
+    block: (module BLOCK_DEVICE);
+  }
+end
+
+module type BLOCKN = sig
+  type t = {
+    console: (module CONSOLE);
+    blockN: (module BLOCK_DEVICE) list;
+  }
+  val attach_all: t -> [ `Error of string | `Ok of unit] io
+end
+
+module type JOB = sig
+  type op =
+    | Start
+    | Stop
+    | Suspend
+    | Resume
+  type 'a io
+  type id
+  type t
+  type error
+  type devices
+
+  val name : t -> string
+  val id : t -> id
+  val control : t -> op -> [ `Error of error | `Ok of unit io ]
+
+  val init : devices -> t io
+end
