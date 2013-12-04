@@ -123,7 +123,6 @@ module type KV_RO = sig
 
   include DEVICE
     with type error := error
-     and type id = string
 
   (** Abstract type for a page-aligned memory stream. *)
   type page_aligned_stream
