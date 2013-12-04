@@ -119,7 +119,7 @@ module type KV_RO = sig
 
   type error =
     | Invalid_store of string
-    | Uknown_key of string
+    | Unknown_key of string
 
   include DEVICE
     with type error := error
