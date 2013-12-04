@@ -118,7 +118,6 @@ module type KV_RO = sig
   (** Static Key/value store. *)
 
   type error =
-    | Invalid_store of string
     | Unknown_key of string
 
   include DEVICE
