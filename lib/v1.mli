@@ -113,6 +113,29 @@ module type DEVICE = sig
       time to complete, it can never result in an error. *)
 end
 
+module type KV_RO = sig
+  (** Static Key/value store. *)
+
+  type error =
+    | Invalid_store of string
+    | Uknown_key of string
+
+  include DEVICE
+    with type error := error
+     and type id = string
+
+  (** Abstract type for a page-aligned memory stream. *)
+  type page_aligned_stream
+
+  val read: t -> string -> [ `Error of error | `Ok of page_aligned_stream ] io
+  (** Read the value associated to a key. *)
+
+  val size: t -> string -> [`Error of error | `Ok of int64] io
+  (** Get the value size. *)
+
+end
+
+
 (** Text console input/output operations. *)
 module type CONSOLE = sig
   type error = 
