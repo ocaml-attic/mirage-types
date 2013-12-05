@@ -1,5 +1,6 @@
 (*
  * Copyright (c) 2011-2013 Anil Madhavapeddy <anil@recoil.org>
+ * Copyright (c) 2013      Thomas Gazagnaire <thomas@gazagnaire.org>
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -113,9 +114,30 @@ module type DEVICE = sig
       time to complete, it can never result in an error. *)
 end
 
+module type KV_RO = sig
+  (** Static Key/value store. *)
+
+  type error =
+    | Unknown_key of string
+
+  include DEVICE
+    with type error := error
+
+  (** Abstract type for a page-aligned memory stream. *)
+  type page_aligned_stream
+
+  val read: t -> string -> [ `Error of error | `Ok of page_aligned_stream ] io
+  (** Read the value associated to a key. *)
+
+  val size: t -> string -> [`Error of error | `Ok of int64] io
+  (** Get the value size. *)
+
+end
+
+
 (** Text console input/output operations. *)
 module type CONSOLE = sig
-  type error = 
+  type error =
     | Invalid_console of string
 
   include DEVICE with
