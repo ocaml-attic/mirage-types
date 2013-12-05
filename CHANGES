@@ -1,0 +1,9 @@
+0.2.0 (05-Dec-2013):
+* Add `KV_RO` read-only key-value store type.
+* Add `DEVICE` module type.
+* Only install the `cmi` files, since this is just an interface.
+* Change error types to polymorphic variants.
+* Activate Travis CI scripts.
+
+0.1.0 (02-Dec-2013):
+* Initial public release
