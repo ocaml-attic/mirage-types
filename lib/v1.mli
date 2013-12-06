@@ -248,14 +248,8 @@ module type FS = sig
     | `Block_device of block_device_error
   ]
 
-  include DEVICE with
-    type error := error
-
   include KV_RO with
-    type 'a io := 'a io
-    and type error := error
-    and type t := t
-    and type id := id
+    type error := error
 
   (** Per-file/directory statistics *)
   type stat = {
