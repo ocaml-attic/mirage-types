@@ -251,10 +251,11 @@ module type FS = sig
   include DEVICE with
     type error := error
 
-  module KV_RO: KV_RO with type 'a io = 'a io
-
-  (** Abstract type for a page-aligned memory buffer *)
-  type page_aligned_buffer
+  include KV_RO with
+    type 'a io := 'a io
+    and type error := error
+    and type t := t
+    and type id := id
 
   (** Per-file/directory statistics *)
   type stat = {
@@ -289,10 +290,6 @@ module type FS = sig
       filesystem [t] *)
   val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
 
-  (** [read t path offset length] reads up to [length] bytes from file [path] on
-      filesystem [t]. If less data is returned than requested, this indicates
-      end-of-file. *)
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
 end
 
 
