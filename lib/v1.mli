@@ -251,6 +251,8 @@ module type FS = sig
   include DEVICE with
     type error := error
 
+  module KV_RO: KV_RO with type 'a io = 'a io
+
   (** Abstract type for a page-aligned memory buffer *)
   type page_aligned_buffer
 
