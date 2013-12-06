@@ -124,11 +124,13 @@ module type KV_RO = sig
   include DEVICE
     with type error := error
 
-  (** Abstract type for a page-aligned memory stream. *)
-  type page_aligned_stream
+  (** Abstract type for a page-aligned memory buffer *)
+  type page_aligned_buffer
 
-  val read: t -> string -> [ `Error of error | `Ok of page_aligned_stream ] io
-  (** Read the value associated to a key. *)
+  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+  (** [read t key offset length] reads up to [length] bytes from the value
+      associated with [key]. If less data is returned than requested, this
+      indicates the end of the value. *)
 
   val size: t -> string -> [`Error of error | `Ok of int64] io
   (** Get the value size. *)
