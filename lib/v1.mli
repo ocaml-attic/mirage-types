@@ -1,6 +1,7 @@
 (*
  * Copyright (c) 2011-2013 Anil Madhavapeddy <anil@recoil.org>
  * Copyright (c) 2013      Thomas Gazagnaire <thomas@gazagnaire.org>
+ * Copyright (c) 2013      Citrix Systems Inc
  *
  * Permission to use, copy, modify, and distribute this software for any
  * purpose with or without fee is hereby granted, provided that the above
@@ -226,3 +227,67 @@ module BLOCK : sig
   end
 
 end
+
+module type FS = sig
+
+  (** Abstract type representing an error from the block layer *)
+  type block_device_error
+
+  type error = [
+    | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
+    | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
+    | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
+    | `No_directory_entry of string * string (** Cannot find a directory entry *)
+    | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
+    | `No_space                              (** No space left on the block device *)
+    | `Format_not_recognised of string       (** The block device appears to not be formatted *)
+    | `Unknown_error of string
+    | `Block_device of block_device_error
+  ]
+
+  include DEVICE with
+    type error := error
+
+  (** Abstract type for a page-aligned memory buffer *)
+  type page_aligned_buffer
+
+  (** Per-file/directory statistics *)
+  type stat = {
+    filename: string; (** Filename within the enclosing directory *)
+    read_only: bool;  (** True means the contents are read-only *)
+    directory: bool;  (** True means the entity is a directory; false means a file *)
+    size: int64;      (** Size of the entity in bytes *)
+  }
+
+  (** [format t size] erases the contents of [t] and creates an empty filesystem
+      of size [size] bytes *)
+  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
+
+  (** [create t path] creates an empty file at [path] *)
+  val create: t -> string -> [ `Ok of unit | `Error of error ] io
+
+  (** [mkdir t path] creates an empty directory at [path] *)
+  val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
+
+  (** [destroy t path] removes a [path] (which may be a file or an empty
+      directory) on filesystem [t] *)
+  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
+
+  (** [stat t path] returns information about file or directory at [path] *)
+  val stat: t -> string -> [ `Ok of stat | `Error of error ] io
+
+  (** [listdir t path] returns the names of files and subdirectories
+      within the directory [path] *)
+  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
+
+  (** [write t path offset data] writes [data] at [offset] in file [path] on
+      filesystem [t] *)
+  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
+
+  (** [read t path offset length] reads up to [length] bytes from file [path] on
+      filesystem [t]. If less data is returned than requested, this indicates
+      end-of-file. *)
+  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
+end
+
+
