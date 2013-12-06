@@ -140,8 +140,9 @@ end
 
 (** Text console input/output operations. *)
 module type CONSOLE = sig
-  type error =
-    | Invalid_console of string
+  type error = [
+    | `Invalid_console of string
+  ]
 
   include DEVICE with
     type error := error
