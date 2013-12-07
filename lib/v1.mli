@@ -156,16 +156,16 @@ module type CONSOLE = sig
   (** [write_all t buf off len] is a thread that writes [String.sub buf
       off len] to the console [t] and returns [len] when done. Raises
       {!Invalid_argument} if [len > buf - off]. *)
-  val write_all : t -> string -> int -> int -> int io
+  val write_all : t -> string -> int -> int -> unit io
 
   (** [log str] writes as much characters of [str] that can be written
-      in one write operation to the default console [t], then writes
+      in one write operation to the console [t], then writes
       "\r\n" to it. *)
-  val log : string -> unit
+  val log : t -> string -> unit
 
-  (** [log_s str] is a thread that writes [str ^ "\r\n"] in the default
+  (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
       console [t]. *)
-  val log_s : string -> unit io
+  val log_s : t -> string -> unit io
 
 end
 
@@ -228,7 +228,6 @@ module BLOCK : sig
     val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
   end
-
 end
 
 module type FS = sig
