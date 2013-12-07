@@ -154,7 +154,7 @@ module type CONSOLE = sig
   val write : t -> string -> int -> int -> int
 
   (** [write_all t buf off len] is a thread that writes [String.sub buf
-      off len] to the console [t] and returns [len] when done. Raises
+      off len] to the console [t] and returns when done. Raises
       {!Invalid_argument} if [len > buf - off]. *)
   val write_all : t -> string -> int -> int -> unit io
 
