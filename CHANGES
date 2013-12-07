@@ -1,3 +1,7 @@
+0.3.0 (trunk):
+* Add `FS` type for file system.
+* Simplify CONSOLE type to not have a magic default one.
+
 0.2.0 (05-Dec-2013):
 * Add `KV_RO` read-only key-value store type.
 * Add `DEVICE` module type.
