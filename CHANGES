@@ -1,4 +1,4 @@
-0.3.0 (trunk):
+0.3.0 (07-Dec-2013):
 * Add `FS` type for file system.
 * Simplify CONSOLE type to not have a magic default one.
 
