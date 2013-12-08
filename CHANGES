@@ -1,4 +1,5 @@
 0.4.0 (08-Dec-2013):
+* Rename `BLOCK.CLIENT` to just `BLOCK` to match others.
 * Add a `DEVICE.id` function to retrieve an id from a `DEVICE.t`.
 * Make `BLOCK.id` abstract.
 * Make `CONSOLE.id` abstract.
