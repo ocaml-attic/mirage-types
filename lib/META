@@ -1,4 +1,4 @@
-version = "0.9.9"
+version = "0.4.0"
 description = "Collection of module signatures for Mirage"
 archive(byte) = ""
 archive(byte, plugin) = ""
