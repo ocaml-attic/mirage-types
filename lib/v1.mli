@@ -107,6 +107,9 @@ module type DEVICE = sig
   (** Type defining an identifier for this device that uniquely
       identifies it among a device tree. *)
 
+  val id : t -> id
+  (** Return the identifier that was used to construct this device *)
+
   val connect: id -> [ `Error of error | `Ok of t ] io
   (** Connect to the device identified by [id] *)
 
@@ -146,7 +149,6 @@ module type CONSOLE = sig
 
   include DEVICE with
     type error := error
-    and type id = string
 
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
       off len] to the console [t] and returns the number of bytes
@@ -186,7 +188,6 @@ module BLOCK : sig
 
     include DEVICE with
       type error := error
-      and type id = string
 
     (** Characteristics of the block device. Note some devices may be able
         to make themselves bigger over time. *)
