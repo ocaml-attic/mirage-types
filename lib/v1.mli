@@ -171,7 +171,7 @@ module type CONSOLE = sig
 
 end
 
-module BLOCK : sig
+module type BLOCK = sig
 
   (** Abstract type for a page-aligned memory buffer *)
   type page_aligned_buffer
