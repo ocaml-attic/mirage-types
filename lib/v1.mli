@@ -107,6 +107,9 @@ module type DEVICE = sig
   (** Type defining an identifier for this device that uniquely
       identifies it among a device tree. *)
 
+  val id : t -> id
+  (** Return the identifier that was used to construct this device *)
+
   val connect: id -> [ `Error of error | `Ok of t ] io
   (** Connect to the device identified by [id] *)
 
@@ -146,7 +149,6 @@ module type CONSOLE = sig
 
   include DEVICE with
     type error := error
-    and type id = string
 
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
       off len] to the console [t] and returns the number of bytes
@@ -169,113 +171,108 @@ module type CONSOLE = sig
 
 end
 
-module BLOCK : sig
+module type BLOCK = sig
 
-  module type CLIENT = sig
+  (** Abstract type for a page-aligned memory buffer *)
+  type page_aligned_buffer
 
-    (** Abstract type for a page-aligned memory buffer *)
-    type page_aligned_buffer
+  (** IO operation errors *)
+  type error = [
+    | `Unknown of string (** an undiagnosed error *)
+    | `Unimplemented     (** operation not yet implemented in the code *)
+    | `Is_read_only      (** you cannot write to a read/only instance *)
+    | `Disconnected      (** the device has been previously disconnected *)
+  ]
 
-    (** IO operation errors *)
-    type error = [
-      | `Unknown of string (** an undiagnosed error *)
-      | `Unimplemented     (** operation not yet implemented in the code *)
-      | `Is_read_only      (** you cannot write to a read/only instance *)
-      | `Disconnected      (** the device has been previously disconnected *)
-    ]
+  include DEVICE with
+    type error := error
 
-    include DEVICE with
-      type error := error
-      and type id = string
+  (** Characteristics of the block device. Note some devices may be able
+      to make themselves bigger over time. *)
+  type info = {
+    read_write: bool;    (** True if we can write, false if read/only *)
+    sector_size: int;    (** Octets per sector *)
+    size_sectors: int64; (** Total sectors per device *)
+  }
 
-    (** Characteristics of the block device. Note some devices may be able
-        to make themselves bigger over time. *)
-    type info = {
-      read_write: bool;    (** True if we can write, false if read/only *)
-      sector_size: int;    (** Octets per sector *)
-      size_sectors: int64; (** Total sectors per device *)
-    }
+  (** Query the characteristics of a specific block device *)
+  val get_info: t -> info io
 
-    (** Query the characteristics of a specific block device *)
-    val get_info: t -> info io
+  (** [read device sector_start buffers] returns a blocking IO operation which
+      attempts to fill [buffers] with data starting at [sector_start].
+      Each of [buffers] must be a whole number of sectors in length. The list
+      of buffers can be of any length. *)
+  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
-    (** [read device sector_start buffers] returns a blocking IO operation which
-        attempts to fill [buffers] with data starting at [sector_start].
-        Each of [buffers] must be a whole number of sectors in length. The list
-        of buffers can be of any length. *)
-    val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
+  (** [write device sector_start buffers] returns a blocking IO operation which
+      attempts to write the data contained within [buffers] to [t] starting
+      at [sector_start]. When the IO operation completes then all writes have been
+      persisted.
 
-    (** [write device sector_start buffers] returns a blocking IO operation which
-        attempts to write the data contained within [buffers] to [t] starting
-        at [sector_start]. When the IO operation completes then all writes have been
-        persisted.
+      Once submitted, it is not possible to cancel a request and there is no timeout.
 
-        Once submitted, it is not possible to cancel a request and there is no timeout.
+      The operation may fail with
+      * [`Unimplemented]: the operation has not been implemented, no data has been written
+      * [`Is_read_only]: the device is read-only, no data has been written
+      * [`Disconnected]: the device has been disconnected at application request,
+        an unknown amount of data has been written
+      * [`Unknown]: some other permanent, fatal error (e.g. disk is on fire), where
+        an unknown amount of data has been written
 
-        The operation may fail with
-        * [`Unimplemented]: the operation has not been implemented, no data has been written
-        * [`Is_read_only]: the device is read-only, no data has been written
-        * [`Disconnected]: the device has been disconnected at application request,
-          an unknown amount of data has been written
-        * [`Unknown]: some other permanent, fatal error (e.g. disk is on fire), where
-          an unknown amount of data has been written
+      Each of [buffers] must be a whole number of sectors in length. The list
+      of buffers can be of any length.
 
-        Each of [buffers] must be a whole number of sectors in length. The list
-        of buffers can be of any length.
-
-        The data will not be copied, so the supplied buffers must not be re-used
-        until the IO operation completes. *)
-    val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
-
-  end
+      The data will not be copied, so the supplied buffers must not be re-used
+      until the IO operation completes. *)
+  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
 end
 
 module type NETWORK = sig
 
-    (** Abstract type for a page-aligned memory buffer *)
-    type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
+  type page_aligned_buffer
 
-    (** Abstract type for a memory buffer that may not be page aligned *)
-    type buffer
+  (** Abstract type for a memory buffer that may not be page aligned *)
+  type buffer
 
-    (** IO operation errors *)
-    type error = [
-      | `Unknown of string (** an undiagnosed error *)
-      | `Unimplemented     (** operation not yet implemented in the code *)
-      | `Disconnected      (** the device has been previously disconnected *)
-    ]
+  (** IO operation errors *)
+  type error = [
+    | `Unknown of string (** an undiagnosed error *)
+    | `Unimplemented     (** operation not yet implemented in the code *)
+    | `Disconnected      (** the device has been previously disconnected *)
+  ]
 
-    (** Unique MAC identifier for the device *)
-    type macaddr
+  (** Unique MAC identifier for the device *)
+  type macaddr
 
-    include DEVICE with
-      type error := error
+  include DEVICE with
+    type error := error
 
-    val write : t -> buffer -> unit io
-    (** [write nf buf] outputs [buf] to netfront [nf]. *)
+  val write : t -> buffer -> unit io
+  (** [write nf buf] outputs [buf] to netfront [nf]. *)
 
-    val writev : t -> buffer list -> unit io
-    (** [writev nf bufs] output a list of buffers to netfront [nf] as a
-        single packet. *)
+  val writev : t -> buffer list -> unit io
+  (** [writev nf bufs] output a list of buffers to netfront [nf] as a
+      single packet. *)
 
-    val read : t -> page_aligned_buffer -> [ `Error of error | `Ok of buffer ] io
-    (** [read nf buf] is a blocking operation that fills in the [buf] with
-        data from the network, and returns a [buffer] that represents the
-        view onto the data that was actually read. *)
+  val read : t -> page_aligned_buffer -> [ `Error of error | `Ok of buffer ] io
+  (** [read nf buf] is a blocking operation that fills in the [buf] with
+      data from the network, and returns a [buffer] that represents the
+      view onto the data that was actually read. *)
 
-    val mac : t -> macaddr
-    (** [mac nf] is the MAC address of [nf]. *)
+  val mac : t -> macaddr
+  (** [mac nf] is the MAC address of [nf]. *)
 
-    type stats = {
-      mutable rx_bytes : int64;
-      mutable rx_pkts : int32;
-      mutable tx_bytes : int64;
-      mutable tx_pkts : int32;
-    }
+  type stats = {
+    mutable rx_bytes : int64;
+    mutable rx_pkts : int32;
+    mutable tx_bytes : int64;
+    mutable tx_pkts : int32;
+  }
 
-    val get_stats_counters : t -> stats
-    val reset_stats_counters : t -> unit
+  val get_stats_counters : t -> stats
+  val reset_stats_counters : t -> unit
 end
 
 module type FS = sig
@@ -345,5 +342,3 @@ module type FS = sig
   val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
 
 end
-
-

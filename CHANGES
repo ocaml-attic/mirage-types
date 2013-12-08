@@ -1,5 +1,9 @@
 0.4.0 (08-Dec-2013):
-* Add `Net.IF` type for network interface.
+* Rename `BLOCK.CLIENT` to just `BLOCK` to match others.
+* Add a `DEVICE.id` function to retrieve an id from a `DEVICE.t`.
+* Make `BLOCK.id` abstract.
+* Make `CONSOLE.id` abstract.
+* Add `NETWORK` type for network interface.
 
 0.3.0 (07-Dec-2013):
 * Add `FS` type for file system.
