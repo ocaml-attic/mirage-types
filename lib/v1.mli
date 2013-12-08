@@ -230,6 +230,53 @@ module BLOCK : sig
   end
 end
 
+module NET : sig
+
+  module type IF = sig
+
+    (** Abstract type for a page-aligned memory buffer *)
+    type page_aligned_buffer
+
+    (** IO operation errors *)
+    type error = [
+      | `Unknown of string (** an undiagnosed error *)
+      | `Unimplemented     (** operation not yet implemented in the code *)
+      | `Disconnected      (** the device has been previously disconnected *)
+    ]
+
+    (** Unique MAC identifier for the device *)
+    type macaddr
+
+    include DEVICE with
+      type error := error
+
+    val write : t -> page_aligned_buffer -> unit io
+    (** [write nf buf] outputs [buf] to netfront [nf]. *)
+
+    val writev : t -> page_aligned_buffer list -> unit io
+    (** [writev nf bufs] output a list of buffers to netfront [nf] as a
+        single packet. *)
+
+    val listen : t -> (page_aligned_buffer -> unit io) -> [ `Error of error | `Ok of unit ] io
+    (** [listen nf cb] is a thread that listens endlesses on [nf], and
+        invoke the callback function as frames are received. *)
+
+    val mac : t -> macaddr
+    (** [mac nf] is the MAC address of [nf]. *)
+
+    type stats = {
+      mutable rx_bytes : int64;
+      mutable rx_pkts : int32;
+      mutable tx_bytes : int64;
+      mutable tx_pkts : int32;
+    }
+
+    val get_stats_counters : t -> stats
+    val reset_stats_counters : t -> unit
+
+  end
+end
+
 module type FS = sig
 
   (** Abstract type representing an error from the block layer *)
