@@ -228,14 +228,16 @@ module BLOCK : sig
     val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
   end
+
 end
 
-module NET : sig
-
-  module type IF = sig
+module type NETWORK = sig
 
     (** Abstract type for a page-aligned memory buffer *)
     type page_aligned_buffer
+
+    (** Abstract type for a memory buffer that may not be page aligned *)
+    type buffer
 
     (** IO operation errors *)
     type error = [
@@ -250,16 +252,17 @@ module NET : sig
     include DEVICE with
       type error := error
 
-    val write : t -> page_aligned_buffer -> unit io
+    val write : t -> buffer -> unit io
     (** [write nf buf] outputs [buf] to netfront [nf]. *)
 
-    val writev : t -> page_aligned_buffer list -> unit io
+    val writev : t -> buffer list -> unit io
     (** [writev nf bufs] output a list of buffers to netfront [nf] as a
         single packet. *)
 
-    val listen : t -> (page_aligned_buffer -> unit io) -> [ `Error of error | `Ok of unit ] io
-    (** [listen nf cb] is a thread that listens endlesses on [nf], and
-        invoke the callback function as frames are received. *)
+    val read : t -> page_aligned_buffer -> [ `Error of error | `Ok of buffer ] io
+    (** [read nf buf] is a blocking operation that fills in the [buf] with
+        data from the network, and returns a [buffer] that represents the
+        view onto the data that was actually read. *)
 
     val mac : t -> macaddr
     (** [mac nf] is the MAC address of [nf]. *)
@@ -273,8 +276,6 @@ module NET : sig
 
     val get_stats_counters : t -> stats
     val reset_stats_counters : t -> unit
-
-  end
 end
 
 module type FS = sig
