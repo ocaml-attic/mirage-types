@@ -256,10 +256,11 @@ module type NETWORK = sig
   (** [writev nf bufs] output a list of buffers to netfront [nf] as a
       single packet. *)
 
-  val read : t -> page_aligned_buffer -> [ `Error of error | `Ok of buffer ] io
-  (** [read nf buf] is a blocking operation that fills in the [buf] with
-      data from the network, and returns a [buffer] that represents the
-      view onto the data that was actually read. *)
+  val listen : t -> (buffer -> unit io) -> unit io
+  (** [listen nf fn] is a blocking operation that calls [fn buf] with
+      every packet that is read from the interface.  It returns as soon
+      as it has initialised, and the function can be stopped by calling
+      [disconnect] in the device layer. *)
 
   val mac : t -> macaddr
   (** [mac nf] is the MAC address of [nf]. *)
