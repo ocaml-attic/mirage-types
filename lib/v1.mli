@@ -154,6 +154,11 @@ module type CONSOLE = sig
   (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
       console [t]. *)
 
+  val fprintf: t -> ('a, t, unit) format -> 'a
+  (** [printf c fmt a1 ... an] formats the arguments [a1] to [an]
+      according to the format string [format] and output the resulting
+      string on the console [c]. *)
+
 end
 
 type block_error = [
