@@ -17,9 +17,10 @@
  *)
 
 module type IO_PAGE = sig
+
   (** Memory allocation interface. *)
 
-  type buf
+  type buffer
   (** Type of a C buffer (usually Cstruct) *)
 
   type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
@@ -42,8 +43,11 @@ module type IO_PAGE = sig
   val length : t -> int
   (** [length t] is the size of [t], in bytes. *)
 
-  val to_cstruct : t -> buf
+  val to_cstruct : t -> buffer
+  (** [to_cstruct t] exposes the contents of a page as a C buffer. *)
+
   val to_string : t -> string
+  (** [to_string t] dump the contents of a page in a string. *)
 
   val to_pages : t -> t list
   (** [to_pages t] is a list of [size] memory blocks of one page each,
@@ -60,6 +64,7 @@ module type IO_PAGE = sig
   val round_to_page_size : int -> int
   (** [round_to_page_size n] returns the number of bytes that will be
       allocated for storing [n] bytes in memory *)
+
 end
 
 module type CLOCK = sig
