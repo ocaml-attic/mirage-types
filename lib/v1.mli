@@ -272,14 +272,16 @@ type network_error = [
 
 module type NETWORK = sig
 
-  (** Abstract type for a page-aligned memory buffer *)
+  (** Network operations. *)
+
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
-  (** Abstract type for a memory buffer that may not be page aligned *)
   type buffer
+  (** Abstract type for a memory buffer that may not be page aligned *)
 
-  (** Unique MAC identifier for the device *)
   type macaddr
+  (** Unique MAC identifier for the device *)
 
   include DEVICE with type error = network_error
 
@@ -307,7 +309,11 @@ module type NETWORK = sig
   }
 
   val get_stats_counters : t -> stats
+  (** Get the statistic counters for a given network device. *)
+
   val reset_stats_counters : t -> unit
+  (** Reset the statistic counters of a given network device. *)
+
 end
 
 type fs_error = [
