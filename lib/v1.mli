@@ -95,6 +95,7 @@ module type CLOCK = sig
 end
 
 module type DEVICE = sig
+
   (** Device operations.
       Defines the functions to connect and disconnect any device *)
 
@@ -128,29 +129,30 @@ type console_error = [
   | `Invalid_console of string
 ]
 
-(** Text console input/output operations. *)
 module type CONSOLE = sig
+
+  (** Text console input/output operations. *)
 
   include DEVICE with type error = console_error
 
+  val write : t -> string -> int -> int -> int
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
       off len] to the console [t] and returns the number of bytes
       written. Raises {!Invalid_argument} if [len > buf - off]. *)
-  val write : t -> string -> int -> int -> int
 
+  val write_all : t -> string -> int -> int -> unit io
   (** [write_all t buf off len] is a thread that writes [String.sub buf
       off len] to the console [t] and returns when done. Raises
       {!Invalid_argument} if [len > buf - off]. *)
-  val write_all : t -> string -> int -> int -> unit io
 
+  val log : t -> string -> unit
   (** [log str] writes as much characters of [str] that can be written
       in one write operation to the console [t], then writes
       "\r\n" to it. *)
-  val log : t -> string -> unit
 
+  val log_s : t -> string -> unit io
   (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
       console [t]. *)
-  val log_s : t -> string -> unit io
 
 end
 
