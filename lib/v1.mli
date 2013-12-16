@@ -329,23 +329,23 @@ module type FS = sig
 
   include FS_RO_0 with type error = [ fs_error | kv_ro_error]
 
+  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
   (** [format t size] erases the contents of [t] and creates an empty filesystem
       of size [size] bytes *)
-  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
 
-  (** [create t path] creates an empty file at [path] *)
   val create: t -> string -> [ `Ok of unit | `Error of error ] io
+  (** [create t path] creates an empty file at [path] *)
 
-  (** [mkdir t path] creates an empty directory at [path] *)
   val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
+  (** [mkdir t path] creates an empty directory at [path] *)
 
+  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
   (** [destroy t path] removes a [path] (which may be a file or an empty
       directory) on filesystem [t] *)
-  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
 
+  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
   (** [write t path offset data] writes [data] at [offset] in file [path] on
       filesystem [t] *)
-  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
 
   type stat = {
     basename: string; (** Filename within the enclosing directory *)
