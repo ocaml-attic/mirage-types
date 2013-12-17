@@ -229,7 +229,7 @@ type kv_ro_error =  [
 ]
 (** IO errors for read-only key/value stores. *)
 
-module type FS_RO_0 = sig
+module type KV_RO_0 = sig
 
   (** Read-only key/value store. *)
 
@@ -261,7 +261,7 @@ module type FS_RO_0 = sig
 
 end
 
-module type FS_RO = FS_RO_0 with type error = kv_ro_error
+module type KV_RO = KV_RO_0 with type error = kv_ro_error
 
 type network_error = [
   | `Unknown of string (** an undiagnosed error *)
@@ -327,7 +327,7 @@ module type FS = sig
 
   (** Filesystems. *)
 
-  include FS_RO_0 with type error = [ fs_error | kv_ro_error]
+  include KV_RO_0 with type error = [ fs_error | kv_ro_error]
 
   val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
   (** [format t size] erases the contents of [t] and creates an empty filesystem
