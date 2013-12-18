@@ -112,10 +112,6 @@ module type FS = sig
   (** [write t path offset data] writes [data] at [offset] in file [path] on
       filesystem [t] *)
 
-  (** [listdir t path] returns the names of files and subdirectories
-      within the directory [path] *)
-  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
-
   type stat = {
     basename: string; (** Filename within the enclosing directory *)
     read_only: bool;  (** True means the contents are read-only; this
