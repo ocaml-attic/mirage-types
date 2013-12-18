@@ -1,6 +1,11 @@
-version = "0.5.0"
-description = "Collection of module signatures for Mirage"
-archive(byte) = ""
-archive(byte, plugin) = ""
-archive(native) = ""
-exists_if = "v1.cmi"
+# OASIS_START
+# DO NOT EDIT (digest: f1bbf84fd70e900f8b2dc47cf0dba300)
+version = "0.6.0"
+description = "Mirage types"
+archive(byte) = "mirage-types.cma"
+archive(byte, plugin) = "mirage-types.cma"
+archive(native) = "mirage-types.cmxa"
+archive(native, plugin) = "mirage-types.cmxs"
+exists_if = "mirage-types.cma"
+# OASIS_STOP
+
