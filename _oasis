@@ -1,4 +1,4 @@
-OASISFormat: 0.3
+OASISFormat: 0.4
 Name:        mirage-types
 Version:     0.6.0
 Synopsis:    Mirage types
@@ -6,6 +6,8 @@ Authors:     Thomas Gazagnaire, Anil Madhavapeddy
 License:     ISC
 Plugins:     META (0.3), DevFiles (0.3)
 BuildTools:  ocamlbuild
+
+AlphaFeatures: pure_interface
 
 Library "mirage-types"
   CompiledObject:     best
