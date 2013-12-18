@@ -20,7 +20,7 @@ module type IO_PAGE = sig
 
   (** Memory allocation interface. *)
 
-  type buffer
+  type buf
   (** Type of a C buffer (usually Cstruct) *)
 
   type t = (char, Bigarray.int8_unsigned_elt, Bigarray.c_layout) Bigarray.Array1.t
@@ -43,7 +43,7 @@ module type IO_PAGE = sig
   val length : t -> int
   (** [length t] is the size of [t], in bytes. *)
 
-  val to_cstruct : t -> buffer
+  val to_cstruct : t -> buf
   (** [to_cstruct t] exposes the contents of a page as a C buffer. *)
 
   val to_string : t -> string
@@ -154,11 +154,6 @@ module type CONSOLE = sig
   (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
       console [t]. *)
 
-  val fprintf: t -> ('a, t, unit) format -> 'a
-  (** [printf c fmt a1 ... an] formats the arguments [a1] to [an]
-      according to the format string [format] and output the resulting
-      string on the console [c]. *)
-
 end
 
 type block_error = [
@@ -238,30 +233,20 @@ module type KV_RO_0 = sig
   type page_aligned_buffer
   (** Abstract type for a page-aligned memory buffer *)
 
-  val read: t -> string -> int64 -> int64 ->
+  val read: t -> string -> int -> int ->
     [ `Ok of page_aligned_buffer list | `Error of error ] io
   (** [read t key offset length] reads up to [length] bytes from the value
       associated with [key]. If less data is returned than requested, this
       indicates the end of the value. *)
-
-  val read_all: t -> string ->
-    [ `Ok of page_aligned_buffer list | `Error of error ] io
-  (** [read_all t key] returns the full contents of the value
-      associated with [key]. *)
-
-  val mem: t -> string -> bool
-  (** Check whether a key exists. *)
-
-  val list: t -> string -> [ `Ok of string list | `Error of error ] io
-  (** [list t path] returns the names of files and subdirectories
-      within the directory [path] *)
 
   val size: t -> string -> [`Error of error | `Ok of int64] io
   (** Get the value size. *)
 
 end
 
-module type KV_RO = KV_RO_0 with type error = kv_ro_error
+type kv_ro_error_v1 = Unknown_key of string
+
+module type KV_RO = KV_RO_0 with type error = kv_ro_error_v1
 
 type network_error = [
   | `Unknown of string (** an undiagnosed error *)
@@ -269,6 +254,58 @@ type network_error = [
   | `Disconnected      (** the device has been previously disconnected *)
 ]
 (** IO operation errors for network implementations. *)
+
+
+type fs_error = [
+  | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
+  | `No_space                              (** No space left on the block device *)
+  | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
+]
+(** IO error operations for filesystems. *)
+
+module type FS = sig
+
+  (** Filesystems. *)
+
+  include KV_RO_0 with type error = [ fs_error | kv_ro_error]
+
+  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
+  (** [format t size] erases the contents of [t] and creates an empty filesystem
+      of size [size] bytes *)
+
+  val create: t -> string -> [ `Ok of unit | `Error of error ] io
+  (** [create t path] creates an empty file at [path] *)
+
+  val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
+  (** [mkdir t path] creates an empty directory at [path] *)
+
+  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
+  (** [destroy t path] removes a [path] (which may be a file or an empty
+      directory) on filesystem [t] *)
+
+  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
+  (** [write t path offset data] writes [data] at [offset] in file [path] on
+      filesystem [t] *)
+
+  (** [listdir t path] returns the names of files and subdirectories
+      within the directory [path] *)
+  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
+
+  type stat = {
+    basename: string; (** Filename within the enclosing directory *)
+    read_only: bool;  (** True means the contents are read-only; this
+                          is the case for RO filesystems but might not
+                          be the case for RW filesystems that we use
+                          using a RO intertace. *)
+    directory: bool;  (** True means the entity is a directory; *)
+    size: int64;      (** Size of the entity in bytes *)
+  }
+  (** Per-file/directory statistics *)
+
+  val stat: t -> string -> [ `Ok of stat | `Error of error ] io
+  (** [stat t path] returns information about file or directory at [path] *)
+
+end
 
 module type NETWORK = sig
 
@@ -313,52 +350,5 @@ module type NETWORK = sig
 
   val reset_stats_counters : t -> unit
   (** Reset the statistic counters of a given network device. *)
-
-end
-
-type fs_error = [
-  | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
-  | `No_space                              (** No space left on the block device *)
-  | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
-]
-(** IO error operations for filesystems. *)
-
-module type FS = sig
-
-  (** Filesystems. *)
-
-  include KV_RO_0 with type error = [ fs_error | kv_ro_error]
-
-  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
-  (** [format t size] erases the contents of [t] and creates an empty filesystem
-      of size [size] bytes *)
-
-  val create: t -> string -> [ `Ok of unit | `Error of error ] io
-  (** [create t path] creates an empty file at [path] *)
-
-  val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
-  (** [mkdir t path] creates an empty directory at [path] *)
-
-  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
-  (** [destroy t path] removes a [path] (which may be a file or an empty
-      directory) on filesystem [t] *)
-
-  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
-  (** [write t path offset data] writes [data] at [offset] in file [path] on
-      filesystem [t] *)
-
-  type stat = {
-    basename: string; (** Filename within the enclosing directory *)
-    read_only: bool;  (** True means the contents are read-only; this
-                          is the case for RO filesystems but might not
-                          be the case for RW filesystems that we use
-                          using a RO intertace. *)
-    directory: bool;  (** True means the entity is a directory; *)
-    size: int64;      (** Size of the entity in bytes *)
-  }
-  (** Per-file/directory statistics *)
-
-  val stat: t -> string -> [ `Ok of stat | `Error of error ] io
-  (** [stat t path] returns information about file or directory at [path] *)
 
 end
