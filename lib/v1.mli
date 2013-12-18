@@ -214,14 +214,7 @@ module type BLOCK = sig
 
 end
 
-type kv_ro_error =  [
-  | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
-  | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
-  | `No_directory_entry of string * string (** Cannot find a directory entry *)
-  | `Format_not_recognised of string       (** The block device appears to not be formatted *)
-  | `Unknown_error of string
-  | `Block_device of block_error
-]
+type kv_ro_error = Unknown_key of string
 (** IO errors for read-only key/value stores. *)
 
 module type KV_RO_0 = sig
@@ -244,9 +237,7 @@ module type KV_RO_0 = sig
 
 end
 
-type kv_ro_error_v1 = Unknown_key of string
-
-module type KV_RO = KV_RO_0 with type error = kv_ro_error_v1
+module type KV_RO = KV_RO_0 with type error = kv_ro_error
 
 type network_error = [
   | `Unknown of string (** an undiagnosed error *)
@@ -257,6 +248,12 @@ type network_error = [
 
 
 type fs_error = [
+  | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
+  | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
+  | `No_directory_entry of string * string (** Cannot find a directory entry *)
+  | `Format_not_recognised of string       (** The block device appears to not be formatted *)
+  | `Unknown_error of string
+  | `Block_device of block_error
   | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
   | `No_space                              (** No space left on the block device *)
   | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
@@ -267,7 +264,7 @@ module type FS = sig
 
   (** Filesystems. *)
 
-  include KV_RO_0 with type error = [ fs_error | kv_ro_error]
+  include KV_RO_0 with type error = fs_error
 
   val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
   (** [format t size] erases the contents of [t] and creates an empty filesystem
