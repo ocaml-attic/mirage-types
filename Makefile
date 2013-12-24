@@ -5,4 +5,4 @@ install:
 	./build true
 
 clean:
-	rm -rf _build
+	rm -f lib/v1.cmt lib/v1.cmti lib/v1.cmi

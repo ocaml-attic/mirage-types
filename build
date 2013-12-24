@@ -1,12 +1,8 @@
-#!/bin/sh
+#!/bin/sh -ex
 
-OCAMLBUILD=ocamlbuild
+ocamlc -bin-annot -c lib/v1.mli
 
-ocamlbuild lib/v1.cmi 
-
-B=_build/lib
 if [ "$1" = "true" ]; then
   ocamlfind remove mirage-types || true
-  ocamlfind install mirage-types lib/META $B/v1.cmi
+  ocamlfind install mirage-types lib/META lib/v1.cmi lib/v1.cmti
 fi
-
