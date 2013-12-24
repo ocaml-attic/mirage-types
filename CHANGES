@@ -1,3 +1,6 @@
+1.0.0 (24-Dec-2013):
+* Simplify build system to not use `ocamlbuild`.
+
 0.5.0 (08-Dec-2013):
 * Modify `NETWORK.read` to be `NETWORK.listen` to match implementations.
 
