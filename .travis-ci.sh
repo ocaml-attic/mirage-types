@@ -17,5 +17,5 @@ eval `opam config env`
 make
 make install
 
-opam pin mirage-types . 
+opam pin mirage-types .
 opam install mirage
