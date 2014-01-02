@@ -30,7 +30,7 @@ v2: lib/v2.cmi lib/v2.cmti | v1
 	@
 
 ## note order-only prereq (after |): forces removal before install
-install: lib/META v1 v2 | remove
+install: lib/META lib/v1.cmti lib/v1.cmi lib/v2.cmti lib/v2.cmi | remove
 	$(OCAMLFIND) install mirage-types $^
 
 clean:
