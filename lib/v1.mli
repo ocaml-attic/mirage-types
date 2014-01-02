@@ -126,18 +126,17 @@ module type DEVICE = sig
 
 end
 
+type kv_ro_error =
+  | Unknown_key of string
+
 module type KV_RO = sig
 
   (** Static Key/value store. *)
 
-  type error =
-    | Unknown_key of string
+  include DEVICE with type error = kv_ro_error
 
-  include DEVICE
-    with type error := error
-
-  (** Abstract type for a page-aligned memory buffer *)
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
   val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
   (** [read t key offset length] reads up to [length] bytes from the value
@@ -150,16 +149,15 @@ module type KV_RO = sig
 end
 
 
+type console_error = [
+  | `Invalid_console of string
+]
+
 module type CONSOLE = sig
 
   (** Text console input/output operations. *)
 
-  type error = [
-    | `Invalid_console of string
-  ]
-
-  include DEVICE with
-    type error := error
+  include DEVICE with type error = console_error
 
   val write : t -> string -> int -> int -> int
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
@@ -182,6 +180,14 @@ module type CONSOLE = sig
 
 end
 
+type block_error = [
+  | `Unknown of string (** an undiagnosed error *)
+  | `Unimplemented     (** operation not yet implemented in the code *)
+  | `Is_read_only      (** you cannot write to a read/only instance *)
+  | `Disconnected      (** the device has been previously disconnected *)
+]
+(** IO operation errors *)
+
 module type BLOCK = sig
 
   (** Block-device operations. *)
@@ -189,16 +195,7 @@ module type BLOCK = sig
   type page_aligned_buffer
   (** Abstract type for a page-aligned memory buffer *)
 
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Is_read_only      (** you cannot write to a read/only instance *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** IO operation errors *)
-
-  include DEVICE with
-    type error := error
+  include DEVICE with type error = block_error
 
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)
@@ -241,28 +238,28 @@ module type BLOCK = sig
 
 end
 
+type network_error = [
+  | `Unknown of string (** an undiagnosed error *)
+  | `Unimplemented     (** operation not yet implemented in the code *)
+  | `Disconnected      (** the device has been previously disconnected *)
+]
+(** IO operation errors *)
+
 module type NETWORK = sig
 
   (** Network operations. *)
 
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
   type buffer
   (** Abstract type for a memory buffer that may not be page aligned *)
-
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
-  (** IO operation errors *)
 
   (** Unique MAC identifier for the device *)
   type macaddr
   (** Unique MAC identifier for the device *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE with type error = network_error
 
   val write : t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -296,29 +293,25 @@ module type NETWORK = sig
 
 end
 
+type fs_error = [
+  | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
+  | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
+  | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
+  | `No_directory_entry of string * string (** Cannot find a directory entry *)
+  | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
+  | `No_space                              (** No space left on the block device *)
+  | `Format_not_recognised of string       (** The block device appears to not be formatted *)
+  | `Unknown_error of string
+  | `Block_device of block_error
+]
+(** Filesystem errors. *)
+
 module type FS = sig
 
   (** Filesystem operations. *)
 
-  type block_device_error
-  (** Abstract type representing an error from the block layer *)
-
-  type error = [
-    | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
-    | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
-    | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
-    | `No_directory_entry of string * string (** Cannot find a directory entry *)
-    | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
-    | `No_space                              (** No space left on the block device *)
-    | `Format_not_recognised of string       (** The block device appears to not be formatted *)
-    | `Unknown_error of string
-    | `Block_device of block_device_error
-  ]
-  (** Filesystem errors. *)
-
   (* The following is from KV_RO: *)
-  include DEVICE
-    with type error := error
+  include DEVICE with type error = fs_error
 
   type page_aligned_buffer
   (** Abstract type for a page-aligned memory buffer *)
