@@ -34,7 +34,7 @@ install: lib/META lib/v1.cmti lib/v1.cmi lib/v2.cmti lib/v2.cmi | remove
 	$(OCAMLFIND) install mirage-types $^
 
 clean:
-	$(RM) lib/v1.cmt lib/v1.cmti lib/v1.cmi
+	$(RM) -f lib/*.cmt lib/*.cmti lib/*.cmi
 
 remove:
 	$(OCAMLFIND) remove mirage-types || true
