@@ -126,14 +126,11 @@ module type DEVICE = sig
 
 end
 
-type kv_ro_error =
-  | Unknown_key of string
+module type KV_RO_0 = sig
 
-module type KV_RO = sig
+  (** Read-only key/value store. *)
 
-  (** Static Key/value store. *)
-
-  include DEVICE with type error = kv_ro_error
+  include DEVICE
 
   type page_aligned_buffer
   (** Abstract type for a page-aligned memory buffer *)
@@ -148,6 +145,11 @@ module type KV_RO = sig
 
 end
 
+type kv_ro_error =
+  | Unknown_key of string
+(** IO errors. *)
+
+module type KV_RO = KV_RO_0 with type error = kv_ro_error
 
 type console_error = [
   | `Invalid_console of string
@@ -310,21 +312,8 @@ module type FS = sig
 
   (** Filesystem operations. *)
 
-  (* The following is from KV_RO: *)
-  include DEVICE with type error = fs_error
+  include KV_RO_0 with type error = fs_error
 
-  type page_aligned_buffer
-  (** Abstract type for a page-aligned memory buffer *)
-
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
-  (** [read t key offset length] reads up to [length] bytes from the value
-      associated with [key]. If less data is returned than requested, this
-      indicates the end of the value. *)
-
-  val size: t -> string -> [`Error of error | `Ok of int64] io
-  (** Get the value size. *)
-
-  (* The following is specific to FS: *)
   type stat = {
     filename: string; (** Filename within the enclosing directory *)
     read_only: bool;  (** True means the contents are read-only *)
