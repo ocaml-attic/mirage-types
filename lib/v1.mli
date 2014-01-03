@@ -314,6 +314,9 @@ module type FS = sig
 
   include KV_RO_0 with type error = fs_error
 
+  type block_device_error = block_error
+  (** Errors of the underying blocks. *)
+
   type stat = {
     filename: string; (** Filename within the enclosing directory *)
     read_only: bool;  (** True means the contents are read-only *)
