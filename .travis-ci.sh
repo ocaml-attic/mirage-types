@@ -19,3 +19,4 @@ make install
 
 opam pin mirage-types .
 opam install mirage
+opam install mirage-www

@@ -17,17 +17,24 @@
 
 .PHONY: all install clean remove
 
-OCAML=ocamlc -bin-annot -c
+OCAML=ocamlc -bin-annot -c -I lib/
 OCAMLFIND=ocamlfind
 
-all: lib/v1.cmi lib/v1.cmti
+all: v1 v2
+	@
+
+v1: lib/v1.cmi lib/v1.cmti
+	@
+
+v2: lib/v2.cmi lib/v2.cmti | v1
+	@
 
 ## note order-only prereq (after |): forces removal before install
-install: lib/META lib/v1.cmi lib/v1.cmti | remove
+install: lib/META lib/v1.cmti lib/v1.cmi lib/v2.cmti lib/v2.cmi | remove
 	$(OCAMLFIND) install mirage-types $^
 
 clean:
-	$(RM) lib/v1.cmt lib/v1.cmti lib/v1.cmi
+	$(RM) -f lib/*.cmt lib/*.cmti lib/*.cmi
 
 remove:
 	$(OCAMLFIND) remove mirage-types || true

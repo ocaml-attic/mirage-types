@@ -1,3 +1,13 @@
+1.1.0:
+* V2: Rename `IO_PAGE.buf` into `IO_PAGE.buffer`
+* V2: Add `CONSOLE.fprintf`
+* V2: `KV_RO.read` now takes an `int64` as parameter instead of `int` (mirage/#149)
+* V2: Add `KV_RO.read_all`
+* V2: Add `KV_RO.mem`
+* V2: Add `KV_RO.list` to list the subdirectories of a given path
+* V2: Add a proper polymorphic variant error for `KV_RO`
+* V2: Rename `FS.listdir` to `FS.list`
+
 1.0.0 (24-Dec-2013):
 * Simplify build system to not use `ocamlbuild`.
 
