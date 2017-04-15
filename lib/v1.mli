@@ -17,6 +17,7 @@
  *)
 
 module type IO_PAGE = sig
+
   (** Memory allocation interface. *)
 
   type buf
@@ -43,7 +44,10 @@ module type IO_PAGE = sig
   (** [length t] is the size of [t], in bytes. *)
 
   val to_cstruct : t -> buf
+  (** [to_cstruct t] exposes the contents of a page as a C buffer. *)
+
   val to_string : t -> string
+  (** [to_string t] dump the contents of a page in a string. *)
 
   val to_pages : t -> t list
   (** [to_pages t] is a list of [size] memory blocks of one page each,
@@ -60,9 +64,11 @@ module type IO_PAGE = sig
   val round_to_page_size : int -> int
   (** [round_to_page_size n] returns the number of bytes that will be
       allocated for storing [n] bytes in memory *)
+
 end
 
 module type CLOCK = sig
+
   (** Clock operations.
       Currently read-only to retrieve the time in various formats. *)
 
@@ -90,6 +96,7 @@ module type CLOCK = sig
 end
 
 module type DEVICE = sig
+
   (** Device operations.
       Defines the functions to connect and disconnect any device *)
 
@@ -116,19 +123,17 @@ module type DEVICE = sig
   val disconnect : t -> unit io
   (** Disconnect from the device.  While this might take some
       time to complete, it can never result in an error. *)
+
 end
 
-module type KV_RO = sig
-  (** Static Key/value store. *)
+module type KV_RO_0 = sig
 
-  type error =
-    | Unknown_key of string
+  (** Read-only key/value store. *)
 
   include DEVICE
-    with type error := error
 
-  (** Abstract type for a page-aligned memory buffer *)
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
   val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
   (** [read t key offset length] reads up to [length] bytes from the value
@@ -140,70 +145,78 @@ module type KV_RO = sig
 
 end
 
+type kv_ro_error =
+  | Unknown_key of string
+(** IO errors. *)
 
-(** Text console input/output operations. *)
+module type KV_RO = KV_RO_0 with type error = kv_ro_error
+
+type console_error = [
+  | `Invalid_console of string
+]
+
 module type CONSOLE = sig
-  type error = [
-    | `Invalid_console of string
-  ]
 
-  include DEVICE with
-    type error := error
+  (** Text console input/output operations. *)
 
+  include DEVICE with type error = console_error
+
+  val write : t -> string -> int -> int -> int
   (** [write t buf off len] writes up to [len] chars of [String.sub buf
       off len] to the console [t] and returns the number of bytes
       written. Raises {!Invalid_argument} if [len > buf - off]. *)
-  val write : t -> string -> int -> int -> int
 
+  val write_all : t -> string -> int -> int -> unit io
   (** [write_all t buf off len] is a thread that writes [String.sub buf
       off len] to the console [t] and returns when done. Raises
       {!Invalid_argument} if [len > buf - off]. *)
-  val write_all : t -> string -> int -> int -> unit io
 
+  val log : t -> string -> unit
   (** [log str] writes as much characters of [str] that can be written
       in one write operation to the console [t], then writes
       "\r\n" to it. *)
-  val log : t -> string -> unit
 
+  val log_s : t -> string -> unit io
   (** [log_s str] is a thread that writes [str ^ "\r\n"] in the
       console [t]. *)
-  val log_s : t -> string -> unit io
 
 end
 
+type block_error = [
+  | `Unknown of string (** an undiagnosed error *)
+  | `Unimplemented     (** operation not yet implemented in the code *)
+  | `Is_read_only      (** you cannot write to a read/only instance *)
+  | `Disconnected      (** the device has been previously disconnected *)
+]
+(** IO operation errors *)
+
 module type BLOCK = sig
 
-  (** Abstract type for a page-aligned memory buffer *)
+  (** Block-device operations. *)
+
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
-  (** IO operation errors *)
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Is_read_only      (** you cannot write to a read/only instance *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
+  include DEVICE with type error = block_error
 
-  include DEVICE with
-    type error := error
-
-  (** Characteristics of the block device. Note some devices may be able
-      to make themselves bigger over time. *)
   type info = {
     read_write: bool;    (** True if we can write, false if read/only *)
     sector_size: int;    (** Octets per sector *)
     size_sectors: int64; (** Total sectors per device *)
   }
+  (** Characteristics of the block device. Note some devices may be able
+      to make themselves bigger over time. *)
 
-  (** Query the characteristics of a specific block device *)
   val get_info: t -> info io
+  (** Query the characteristics of a specific block device *)
 
+  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
   (** [read device sector_start buffers] returns a blocking IO operation which
       attempts to fill [buffers] with data starting at [sector_start].
       Each of [buffers] must be a whole number of sectors in length. The list
       of buffers can be of any length. *)
-  val read: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
+  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
   (** [write device sector_start buffers] returns a blocking IO operation which
       attempts to write the data contained within [buffers] to [t] starting
       at [sector_start]. When the IO operation completes then all writes have been
@@ -224,30 +237,31 @@ module type BLOCK = sig
 
       The data will not be copied, so the supplied buffers must not be re-used
       until the IO operation completes. *)
-  val write: t -> int64 -> page_aligned_buffer list -> [ `Error of error | `Ok of unit ] io
 
 end
 
+type network_error = [
+  | `Unknown of string (** an undiagnosed error *)
+  | `Unimplemented     (** operation not yet implemented in the code *)
+  | `Disconnected      (** the device has been previously disconnected *)
+]
+(** IO operation errors *)
+
 module type NETWORK = sig
 
-  (** Abstract type for a page-aligned memory buffer *)
+  (** Network operations. *)
+
   type page_aligned_buffer
+  (** Abstract type for a page-aligned memory buffer *)
 
-  (** Abstract type for a memory buffer that may not be page aligned *)
   type buffer
-
-  (** IO operation errors *)
-  type error = [
-    | `Unknown of string (** an undiagnosed error *)
-    | `Unimplemented     (** operation not yet implemented in the code *)
-    | `Disconnected      (** the device has been previously disconnected *)
-  ]
+  (** Abstract type for a memory buffer that may not be page aligned *)
 
   (** Unique MAC identifier for the device *)
   type macaddr
+  (** Unique MAC identifier for the device *)
 
-  include DEVICE with
-    type error := error
+  include DEVICE with type error = network_error
 
   val write : t -> buffer -> unit io
   (** [write nf buf] outputs [buf] to netfront [nf]. *)
@@ -271,75 +285,69 @@ module type NETWORK = sig
     mutable tx_bytes : int64;
     mutable tx_pkts : int32;
   }
+  (** Network statistics. *)
 
   val get_stats_counters : t -> stats
+  (** Get the statistic counters for a given network device. *)
+
   val reset_stats_counters : t -> unit
+  (** Reset the statistic counters of a given network device. *)
+
 end
+
+type fs_error = [
+  | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
+  | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
+  | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
+  | `No_directory_entry of string * string (** Cannot find a directory entry *)
+  | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
+  | `No_space                              (** No space left on the block device *)
+  | `Format_not_recognised of string       (** The block device appears to not be formatted *)
+  | `Unknown_error of string
+  | `Block_device of block_error
+]
+(** Filesystem errors. *)
 
 module type FS = sig
 
-  (** Abstract type representing an error from the block layer *)
-  type block_device_error
+  (** Filesystem operations. *)
 
-  type error = [
-    | `Not_a_directory of string             (** Cannot create a directory entry in a file *)
-    | `Is_a_directory of string              (** Cannot read or write the contents of a directory *)
-    | `Directory_not_empty of string         (** Cannot remove a non-empty directory *)
-    | `No_directory_entry of string * string (** Cannot find a directory entry *)
-    | `File_already_exists of string         (** Cannot create a file with a duplicate name *)
-    | `No_space                              (** No space left on the block device *)
-    | `Format_not_recognised of string       (** The block device appears to not be formatted *)
-    | `Unknown_error of string
-    | `Block_device of block_device_error
-  ]
+  include KV_RO_0 with type error = fs_error
 
-  (* The following is from KV_RO: *)
-  include DEVICE
-    with type error := error
+  type block_device_error = block_error
+  (** Errors of the underying blocks. *)
 
-  (** Abstract type for a page-aligned memory buffer *)
-  type page_aligned_buffer
-
-  val read: t -> string -> int -> int -> [ `Ok of page_aligned_buffer list | `Error of error ] io
-  (** [read t key offset length] reads up to [length] bytes from the value
-      associated with [key]. If less data is returned than requested, this
-      indicates the end of the value. *)
-
-  val size: t -> string -> [`Error of error | `Ok of int64] io
-  (** Get the value size. *)
-
-  (* The following is specific to FS: *)
-  (** Per-file/directory statistics *)
   type stat = {
     filename: string; (** Filename within the enclosing directory *)
     read_only: bool;  (** True means the contents are read-only *)
     directory: bool;  (** True means the entity is a directory; false means a file *)
     size: int64;      (** Size of the entity in bytes *)
   }
+  (** Per-file/directory statistics *)
 
+  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
   (** [format t size] erases the contents of [t] and creates an empty filesystem
       of size [size] bytes *)
-  val format: t -> int64 -> [ `Ok of unit | `Error of error ] io
 
-  (** [create t path] creates an empty file at [path] *)
   val create: t -> string -> [ `Ok of unit | `Error of error ] io
+  (** [create t path] creates an empty file at [path] *)
 
-  (** [mkdir t path] creates an empty directory at [path] *)
   val mkdir: t -> string -> [ `Ok of unit | `Error of error ] io
+  (** [mkdir t path] creates an empty directory at [path] *)
 
+  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
   (** [destroy t path] removes a [path] (which may be a file or an empty
       directory) on filesystem [t] *)
-  val destroy: t -> string -> [ `Ok of unit | `Error of error ] io
 
-  (** [stat t path] returns information about file or directory at [path] *)
   val stat: t -> string -> [ `Ok of stat | `Error of error ] io
+  (** [stat t path] returns information about file or directory at [path] *)
 
+  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
   (** [listdir t path] returns the names of files and subdirectories
       within the directory [path] *)
-  val listdir: t -> string -> [ `Ok of string list | `Error of error ] io
 
+  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
   (** [write t path offset data] writes [data] at [offset] in file [path] on
       filesystem [t] *)
-  val write: t -> string -> int -> page_aligned_buffer -> [ `Ok of unit | `Error of error ] io
 
 end
